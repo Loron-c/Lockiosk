@@ -85,6 +85,8 @@ public class MainActivity extends Activity {
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                                 | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                         PixelFormat.TRANSLUCENT);
+                // 修复：不指定 gravity 时悬浮窗默认显示在屏幕中央，挡板根本没在顶部！
+                lp.gravity = android.view.Gravity.TOP;
                 wm.addView(guard, lp);
                 statusBarGuard = guard;
             } catch (Exception e) {
@@ -800,6 +802,13 @@ public class MainActivity extends Activity {
         final AlertDialog dlg = builder.create();
 
         dlg.setOnShowListener(d -> {
+            // 修复：全屏/沉浸式状态下系统经常不主动弹键盘，
+            // 弹窗一显示就强制把焦点给输入框并请求输入法
+            input.requestFocus();
+            if (dlg.getWindow() != null) {
+                dlg.getWindow().setSoftInputMode(
+                        WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+            }
             dlg.getButton(AlertDialog.BUTTON_POSITIVE)
                     .setOnClickListener(v -> {
                         String pin = input.getText().toString().trim();

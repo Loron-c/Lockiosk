@@ -288,6 +288,17 @@ public class SettingsActivity extends Activity {
 
     // ---------- 密码 ----------
 
+    /** 弹窗显示后强制弹出输入法（修复全屏状态下键盘不弹） */
+    private void forceShowKeyboard(android.app.Dialog dlg, EditText et) {
+        dlg.setOnShowListener(d -> {
+            et.requestFocus();
+            if (dlg.getWindow() != null) {
+                dlg.getWindow().setSoftInputMode(
+                        WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+            }
+        });
+    }
+
     private void showChangePinDialog() {
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
@@ -300,7 +311,7 @@ public class SettingsActivity extends Activity {
         box.setPadding(dp(24), dp(12), dp(24), 0);
         box.addView(input);
 
-        new AlertDialog.Builder(this)
+        android.app.AlertDialog dlg = new AlertDialog.Builder(this)
                 .setTitle("修改管理员密码")
                 .setView(box)
                 .setPositiveButton("确定", (d, w) -> {
@@ -314,6 +325,7 @@ public class SettingsActivity extends Activity {
                 })
                 .setNegativeButton("取消", null)
                 .show();
+        forceShowKeyboard(dlg, input);
     }
 
     /**
@@ -337,7 +349,7 @@ public class SettingsActivity extends Activity {
         box.setPadding(dp(24), dp(12), dp(24), 0);
         box.addView(input);
 
-        new AlertDialog.Builder(this)
+        android.app.AlertDialog dlg = new AlertDialog.Builder(this)
                 .setTitle("取消 Kiosk 锁定")
                 .setMessage("取消后平板将恢复正常使用：\n"
                         + "• 工人可按 Home 回桌面、可打开其他应用\n"
@@ -365,6 +377,7 @@ public class SettingsActivity extends Activity {
                 })
                 .setNegativeButton("返回", null)
                 .show();
+        forceShowKeyboard(dlg, input);
     }
 
     // ---------- 桌面接管（对齐 Fully Kiosk 的 Launcher 机制） ----------
