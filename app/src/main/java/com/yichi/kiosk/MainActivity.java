@@ -6,7 +6,9 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -61,6 +63,42 @@ public class MainActivity extends Activity {
     private static final long SEQ_WINDOW_MS = 4000;
     private static final int CORNER_SIZE_DP = 100;
 
+    // 通知栏拦截挡板：悬浮在屏幕最顶部的透明窗口（Fully Kiosk 同款机制）。
+    // 系统的"顶部下滑"手势在落到 App 前会被挡板窗口吃掉，通知栏就拉不出来。
+    // 需要用户授予「显示在其他应用上层」权限（设置页有引导按钮）。
+    private View statusBarGuard;
+
+    private void applyStatusBarGuard() {
+        WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+        boolean need = cfg.isKioskEnabled() && cfg.isHideStatusbar()
+                && Settings.canDrawOverlays(this);
+        if (need && statusBarGuard == null) {
+            try {
+                View guard = new View(this);
+                int type = (Build.VERSION.SDK_INT >= 26)
+                        ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                        : WindowManager.LayoutParams.TYPE_PHONE; // Android 8.0 以下
+                WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                        (int) (24 * getResources().getDisplayMetrics().density),
+                        type,
+                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                                | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                        PixelFormat.TRANSLUCENT);
+                wm.addView(guard, lp);
+                statusBarGuard = guard;
+            } catch (Exception e) {
+                statusBarGuard = null; // 无权限或系统不允许，静默降级（还有边缘拦截兜底）
+            }
+        } else if (!need && statusBarGuard != null) {
+            try {
+                wm.removeView(statusBarGuard);
+            } catch (Exception ignored) {
+            }
+            statusBarGuard = null;
+        }
+    }
+
     // 触摸判定（区分点击与滑动）
     private float downX, downY;
     private long downTime;
@@ -97,6 +135,17 @@ public class MainActivity extends Activity {
         cfg = new KioskConfig(this);
 
         applyOrientation();
+
+        // 亮屏直达：屏幕熄灭再亮起时直接显示本应用，不经过系统锁屏输密界面。
+        // 系统锁屏密码仍在后台生效 —— 只挡「离开本应用」，不挡「使用本应用」，
+        // 平板锁屏密码同时保留着 PIN 忘记密码的兜底功能。
+        if (Build.VERSION.SDK_INT >= 27) {
+            setShowWhenLocked(true);
+            setTurnScreenOn(true);
+        } else {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                    | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+        }
 
         // PIN 初始化必须放在崩溃检查之前：
         // 安全模式逃生页的「进入系统设置」要验 PIN，若此时哈希还没落地会永远验证不过
@@ -777,6 +826,7 @@ public class MainActivity extends Activity {
         cfg = new KioskConfig(this);
         applyKeepAwake();
         applyOrientation();
+        applyStatusBarGuard();
         if (webView != null) {
             webView.getSettings().setTextZoom(cfg.getZoom());
         }
@@ -801,6 +851,7 @@ public class MainActivity extends Activity {
         // 修复：onPause 里 webView.onPause() 后，回来必须 onResume()，
         // 否则页面显示着但整个网页暂停、点不动（切后台再回来必现）
         if (webView != null) webView.onResume();
+        applyStatusBarGuard(); // 权限可能刚在系统设置里授予，回来时重试挂挡板
         if (!safeMode && cfg.isKioskEnabled()) {
             enterImmersive();
         }
@@ -814,6 +865,13 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (statusBarGuard != null) {
+            try {
+                ((WindowManager) getSystemService(WINDOW_SERVICE)).removeView(statusBarGuard);
+            } catch (Exception ignored) {
+            }
+            statusBarGuard = null;
+        }
         if (reloadRunnable != null) handler.removeCallbacks(reloadRunnable);
         if (webView != null) {
             try {

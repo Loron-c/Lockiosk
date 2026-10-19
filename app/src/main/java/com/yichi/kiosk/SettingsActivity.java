@@ -10,6 +10,7 @@ import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -99,6 +100,24 @@ public class SettingsActivity extends Activity {
                 "允许用「平板锁屏密码」兜底验证（防止忘记管理员密码被锁死）\n"
                 + "需平板已在系统中设置锁屏密码；PIN 弹窗将出现「忘记密码」入口",
                 cfg.isAllowDeviceCred());
+
+        Button btnOverlay = addButton(ll, "开启「通知栏拦截」权限（每台平板首次需点一次）");
+        btnOverlay.setOnClickListener(v -> {
+            if (Settings.canDrawOverlays(this)) {
+                Toast.makeText(this, "权限已开启，通知栏拦截生效中 ✓", Toast.LENGTH_SHORT).show();
+            } else {
+                try {
+                    Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:" + getPackageName()));
+                    startActivity(i);
+                    Toast.makeText(this, "请在新页面中允许「车间生产系统」显示在其他应用上层",
+                            Toast.LENGTH_LONG).show();
+                } catch (Exception e) {
+                    Toast.makeText(this, "无法打开权限页面：" + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        });
 
         ll.addView(sectionTitle("退出方式（管理员）"));
         TextView gestureTip = new TextView(this);
