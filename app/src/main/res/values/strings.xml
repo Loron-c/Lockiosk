@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">车间生产系统</string>
+    <string name="accessibility_service_desc">通知面板自动收回：监测到通知栏被滑出时立即关闭。仅在 Kiosk 锁定开启时生效。</string>
 </resources>
