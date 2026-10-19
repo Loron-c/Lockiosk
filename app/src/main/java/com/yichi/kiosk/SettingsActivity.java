@@ -194,8 +194,7 @@ public class SettingsActivity extends Activity {
         hardenTip.setTextSize(13);
         hardenTip.setPadding(0, dp(4), 0, dp(8));
         ll.addView(hardenTip);
-        Button btnPinning = addButton(ll, "打开「屏幕固定」设置（系统安全设置页）");
-        btnPinning.setOnClickListener(v -> {
+        Button btnPinning = addButton(ll, "打开「屏幕固定」设置（系统安全设置页）");        btnPinning.setOnClickListener(v -> {
             // 逐级兜底：安全设置 → 应用管理
             String[] actions = {
                     "android.settings.SECURITY_SETTINGS",
@@ -214,6 +213,28 @@ public class SettingsActivity extends Activity {
             }
             Toast.makeText(this, "无法打开，请手动到 设置 → 安全 找「屏幕固定」",
                     Toast.LENGTH_LONG).show();
+        });
+
+        ll.addView(sectionTitle("通知面板自动收回（ZUI 必需，推荐开启）"));
+        TextView a11yTip = new TextView(this);
+        a11yTip.setText("ZUI 的通知栏面板只能由无障碍服务感知并代按返回键关闭（滑出来立刻缩回，"
+                + "与 Fully Kiosk 同款原理）。仅监听系统弹窗事件，未开 Kiosk 锁定时完全不干预。\n"
+                + "操作：点下方按钮 → 在列表里找到「车间生产系统」→ 打开开关。");
+        a11yTip.setTextSize(13);
+        a11yTip.setPadding(0, dp(4), 0, dp(8));
+        ll.addView(a11yTip);
+        Button btnA11y = addButton(ll, "开启「通知面板自动收回」（无障碍设置页）");
+        btnA11y.setOnClickListener(v -> {
+            try {
+                Intent i = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                Toast.makeText(this, "在无障碍服务列表里找到「车间生产系统」并打开",
+                        Toast.LENGTH_LONG).show();
+            } catch (Exception e) {
+                Toast.makeText(this, "无法打开，请手动到 设置 → 无障碍 开启本应用的服务",
+                        Toast.LENGTH_LONG).show();
+            }
         });
 
         ll.addView(sectionTitle("防卸载（可选）"));
