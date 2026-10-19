@@ -186,8 +186,8 @@ public class SettingsActivity extends Activity {
         hardenTip.setTextSize(13);
         hardenTip.setPadding(0, dp(4), 0, dp(8));
         ll.addView(hardenTip);
-        Button btnPin = addButton(ll, "打开「屏幕固定」设置（系统安全设置页）");
-        btnPin.setOnClickListener(v -> {
+        Button btnPinning = addButton(ll, "打开「屏幕固定」设置（系统安全设置页）");
+        btnPinning.setOnClickListener(v -> {
             // 逐级兜底：安全设置 → 应用管理
             String[] actions = {
                     "android.settings.SECURITY_SETTINGS",
