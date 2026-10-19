@@ -22,7 +22,7 @@ public class AutoCloseService extends AccessibilityService {
         if (event == null) return;
         if (!new KioskConfig(this).isKioskEnabled()) return; // 未锁定时不干预
 
-        int type = event.getType();
+        int type = event.getEventType();
         boolean shadeOpen;
 
         if (type == AccessibilityEvent.TYPE_WINDOWS_CHANGED) {
@@ -51,7 +51,7 @@ public class AutoCloseService extends AccessibilityService {
         if (windows == null) return false;
         for (AccessibilityWindowInfo w : windows) {
             // 只认「焦点在系统界面、且不是状态栏/输入法」的窗口 = 展开中的面板
-            if (w.isFocused() && w.getType() != AccessibilityWindowInfo.TYPE_SYSTEM_BAR
+            if (w.isFocused() && w.getType() != AccessibilityWindowInfo.TYPE_SYSTEM
                     && w.getType() != AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
                 CharSequence title = null;
                 if (android.os.Build.VERSION.SDK_INT >= 33) {
