@@ -21,6 +21,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
@@ -116,6 +118,10 @@ public class MainActivity extends Activity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable reloadRunnable;
+
+    // 切后台自动回前台：任何原因离开本应用，600ms 内把自己拉回最前（kiosk 锁定下）。
+    // allowBackgroundOnce：管理员主动跳系统界面（锁屏验证/系统设置）时豁免，避免被误拉回。
+    private boolean allowBackgroundOnce;
 
     // 加载超时检测：25 秒还没加载完就显示错误页（正常内网页面几秒内必开）
     private static final long LOAD_TIMEOUT_MS = 25_000;
@@ -243,6 +249,7 @@ public class MainActivity extends Activity {
         btnSys.setAllCaps(false);
         btnSys.setOnClickListener(v -> askPinThen(() -> {
             try {
+                allowBackgroundOnce = true; // 主动跳系统设置，豁免自动回前台
                 startActivity(new Intent(Settings.ACTION_SETTINGS));
             } catch (Exception e) {
                 Toast.makeText(this, "无法打开系统设置", Toast.LENGTH_SHORT).show();
@@ -508,22 +515,16 @@ public class MainActivity extends Activity {
 
     // ---------- 全屏沉浸 ----------
 
-    // 状态栏巡检：每 300ms 主动检查一次系统栏是否被滑出，展开就立刻收回。
-    // 被动监听在 ZUI 上不可靠（部分机型不回调），主动轮询保证收得回去。
+    // 状态栏巡检：每 300ms 主动收回一次系统栏（Fully Kiosk 同款效果：
+    // 即使工人滑出通知栏，最多停留 0.3 秒立刻缩回，来不及点任何内容）。
+    // 被动监听在 ZUI 上不可靠（不回调），主动轮询 + 无条件收回保证生效。
     private static final long BAR_POLL_MS = 300;
     private final Runnable barPollRunnable = this::pollBars;
 
-    @SuppressWarnings("deprecation")
     private void pollBars() {
         if (cfg != null && cfg.isKioskEnabled() && !safeMode) {
-            int vis = getWindow().getDecorView().getSystemUiVisibility();
-            boolean navVisible = (vis & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
-            boolean statusVisible = (vis & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0;
-            boolean statusRelevant = cfg.isHideStatusbar();
-            if (navVisible || (statusRelevant && statusVisible)) {
-                collapseNotificationPanels();
-                enterImmersive();
-            }
+            collapseNotificationPanels();
+            enterImmersive();
         }
         if (!isDestroyed() && !isFinishing()) {
             handler.postDelayed(barPollRunnable, BAR_POLL_MS);
@@ -550,13 +551,29 @@ public class MainActivity extends Activity {
         });
     }
 
-    /** 通过反射调用系统的「收起通知栏面板」（公开 API 里没有） */
+    /**
+     * 收起通知栏/导航栏。
+     * 优先用 Android 11+ 官方 API WindowInsetsController.hide()（系统公开支持，
+     * 旧版反射调 StatusBarManager 在 Android 9+ 已被系统禁止，一直静默失败）。
+     */
     private void collapseNotificationPanels() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                WindowInsetsController c = getWindow().getInsetsController();
+                if (c != null) {
+                    c.hide(WindowInsets.Type.systemBars());
+                    c.setSystemBarsBehavior(
+                            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                    return;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
         try {
             Object sb = getSystemService("statusbar");
             sb.getClass().getMethod("collapsePanels").invoke(sb);
         } catch (Throwable ignored) {
-            // 部分系统禁用了此接口：静默降级，至少重新进入沉浸式把栏藏回去
+            // 兜底失败：至少重新进入沉浸式把栏藏回去
         }
     }
 
@@ -855,6 +872,7 @@ public class MainActivity extends Activity {
                 Toast.makeText(this, "系统不支持锁屏验证", Toast.LENGTH_LONG).show();
                 return;
             }
+            allowBackgroundOnce = true; // 主动跳系统锁屏验证，豁免自动回前台
             startActivityForResult(i, REQ_DEVICE_CRED);
         } catch (Exception e) {
             Toast.makeText(this, "无法调起锁屏验证：" + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -924,6 +942,32 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         if (webView != null) webView.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (allowBackgroundOnce) {
+            allowBackgroundOnce = false; // 消费豁免：本次离开是管理员主动跳转
+            return;
+        }
+        if (cfg != null && cfg.isKioskEnabled() && !safeMode && !isFinishing()
+                && !isChangingConfigurations() && !SettingsActivity.isOpen()) {
+            handler.postDelayed(this::bringSelfToFront, 600);
+        }
+    }
+
+    /** 把本应用拉回前台（singleTask 会直接复用当前界面） */
+    private void bringSelfToFront() {
+        try {
+            Intent i = new Intent(this, MainActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(i);
+        } catch (Exception ignored) {
+            // Android 10+ 后台启动限制（未授悬浮窗权限的旧设备上可能失败）：静默降级
+        }
     }
 
     @Override

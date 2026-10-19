@@ -46,6 +46,13 @@ public class SettingsActivity extends Activity {
     private static final int REQ_EXPORT = 2001;
     private static final int REQ_IMPORT = 2002;
 
+    /** 供 MainActivity 判断：本设置页是否正开着（开着时不触发「自动回前台」） */
+    private static boolean open = false;
+
+    public static boolean isOpen() {
+        return open;
+    }
+
     private KioskConfig cfg;
 
     private EditText etUrl;
@@ -65,6 +72,7 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        open = true;
         cfg = new KioskConfig(this);
 
         ScrollView sv = new ScrollView(this);
@@ -232,6 +240,12 @@ public class SettingsActivity extends Activity {
         ll.addView(tip);
 
         setContentView(sv);
+    }
+
+    @Override
+    protected void onDestroy() {
+        open = false;
+        super.onDestroy();
     }
 
     // ---------- UI 工具 ----------
