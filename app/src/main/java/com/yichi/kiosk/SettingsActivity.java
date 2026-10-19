@@ -294,7 +294,7 @@ public class SettingsActivity extends Activity {
             et.requestFocus();
             if (dlg.getWindow() != null) {
                 dlg.getWindow().setSoftInputMode(
-                        WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+                        android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
             }
         });
     }
