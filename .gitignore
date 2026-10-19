@@ -1,0 +1,14 @@
+# 忽略编译产物与本地密钥
+*.iml
+.gradle/
+local.properties
+.idea/
+build/
+captures/
+.externalNativeBuild
+.cxx
+# 签名密钥不要提交到公开仓库
+kiosk-release.jks
+*.jks
+*.keystore
+keystore.properties

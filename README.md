@@ -1,13 +1,8 @@
-# -
-锁定浏览器特点网页
----
-
-车间生产平板锁屏 App（KioskLock）
+# 车间生产平板锁屏 App（KioskLock）
 
 自研 Android Kiosk 锁屏应用，替代 Fully Kiosk，专门针对联想小新平板（ZUI）的车间场景。
 
 > 当前版本：**v1.1.0**
-> 
 > - v1.0.1：修复 7 项导致构建失败/生产事故的问题
 > - v1.0.2：新增**网址域名锁定**（对齐 Fully Kiosk 的 URL 白名单），修复返回键导致网页导航失效、边缘拦截误吞按钮点击
 > - v1.0.3：新增**桌面接管**（对齐 Fully Kiosk：App 内一键设为默认桌面，彻底锁住 Home 键）
@@ -15,8 +10,8 @@
 
 ## 核心特性
 
-| 功能  | 说明  |
-| --- | --- |
+| 功能 | 说明 |
+|---|---|
 | 全屏网页锁定 | WebView 全屏加载生产系统，无地址栏 |
 | **网址域名锁定** | **只能停留在生产系统同域名内，点外部链接（百度/淘宝等）自动拦截并提示** |
 | 多层跳转拦截 | 覆盖链接点击、JS `location.href`、表单提交、302 重定向、`window.open` / `target=_blank` 新窗口 |
@@ -41,8 +36,8 @@
 
 对齐 Fully Kiosk 的机制，**四道防线**：
 
-| 防线  | 拦截点 | 覆盖场景 |
-| --- | --- | --- |
+| 防线 | 拦截点 | 覆盖场景 |
+|---|---|---|
 | 1. `shouldOverrideUrlLoading` | 主框架导航 | 点 `<a>` 链接、JS `location.href`、表单提交 |
 | 2. `onPageStarted` 兜底 | 页面开始加载时复查 | 服务器 302 重定向、JS 注入绕过 |
 | 3. `onCreateWindow` 返回 false | 新窗口创建 | `<a target="_blank">`、`window.open()` |
@@ -80,21 +75,17 @@
 **配置步骤（3 分钟，一次永久）：**
 
 1. 本机生成密钥（装了 JDK 或 Git 自带的 keytool 都行；没有的话用方式 B 的 Android Studio 终端）：
-  
-  ```
-  keytool -genkeypair -v -keystore kiosk-release.jks -alias kiosk -keyalg RSA -keysize 2048 -validity 10000 -storepass kiosk2026 -keypass kiosk2026 -dname "CN=Kiosk, OU=IT, O=Yichi, L=Fujian, ST=Fujian, C=CN"
-  ```
-  
+   ```
+   keytool -genkeypair -v -keystore kiosk-release.jks -alias kiosk -keyalg RSA -keysize 2048 -validity 10000 -storepass kiosk2026 -keypass kiosk2026 -dname "CN=Kiosk, OU=IT, O=Yichi, L=Fujian, ST=Fujian, C=CN"
+   ```
 2. 转成 base64 文本（Windows PowerShell）：
-  
-  ```powershell
-  [Convert]::ToBase64String([IO.File]::ReadAllBytes("kiosk-release.jks")) | Set-Clipboard
-  ```
-  
-  （内容已复制到剪贴板）
+   ```powershell
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("kiosk-release.jks")) | Set-Clipboard
+   ```
+   （内容已复制到剪贴板）
 3. GitHub 仓库 → **Settings → Secrets and variables → Actions → New repository secret**：
-  - Name：`KEYSTORE_B64`
-  - Secret：粘贴刚才复制的内容 → 保存
+   - Name：`KEYSTORE_B64`
+   - Secret：粘贴刚才复制的内容 → 保存
 
 然后：
 
@@ -128,24 +119,24 @@
 1. 打开 App
 2. **左上角双击 → 右下角双击** → **直接进设置，不需要密码**（锁定未开启时是免密配置区）
 3. 配置：
-  - **系统名称**：如「义齿生产系统」
-  - **系统网址**：生产系统 URL（https）。裸地址会自动补 `https://`；若是纯 http 内网地址请手动写全 `http://`
-  - **锁定访问域名**：勾上（默认已勾，这是「只能用特定网页」的开关）
-  - **保持屏幕常亮**：按需（车间一般勾上）
-  - **开机自动启动**：勾上
-  - **细粒度锁定项**：屏蔽音量键（默认开）、隐藏状态栏（默认开）、锁屏密码兜底（默认开，建议先给平板设好锁屏密码）
-  - **屏幕方向**：建议选「固定横屏」
-  - ⚠️ **「启用 Kiosk 锁定」最后勾**：勾上并保存后，进设置就要开始输 PIN 了
-4. 点 **修改管理员密码** → 改成你自己的密码（至少 4 位）
-5. 点 **保存并返回** → 会自动弹「建议：设为默认桌面」→ 点 **现在设置** → 系统选择框里选 **车间生产系统** + **始终**
-6. **验证清单**：
-  - 按 Home 键 → 应该回到本应用（回不到系统桌面）✓
-  - 页面里点一个外部链接 → 应弹「已限制访问」
-  - 按音量键 → 无反应
-  - 下拉状态栏 → 被隐藏
-  - 网页内有下一层页面时按返回 → 能后退一页
-  - 左上角双击 + 右下角双击 → 弹 PIN 框，输对进设置、输错报错
-  - 重启平板 → 应自动进入本应用
+   - **系统名称**：如「义齿生产系统」
+   - **系统网址**：生产系统 URL（https）。裸地址会自动补 `https://`；若是纯 http 内网地址请手动写全 `http://`
+   - **锁定访问域名**：勾上（默认已勾，这是「只能用特定网页」的开关）
+   - **保持屏幕常亮**：按需（车间一般勾上）
+   - **开机自动启动**：勾上
+   - **细粒度锁定项**：屏蔽音量键（默认开）、隐藏状态栏（默认开）、锁屏密码兜底（默认开，建议先给平板设好锁屏密码）
+   - **屏幕方向**：建议选「固定横屏」
+   - ⚠️ **「启用 Kiosk 锁定」最后勾**：勾上并保存后，进设置就要开始输 PIN 了
+5. 点 **修改管理员密码** → 改成你自己的密码（至少 4 位）
+6. 点 **保存并返回** → 会自动弹「建议：设为默认桌面」→ 点 **现在设置** → 系统选择框里选 **车间生产系统** + **始终**
+7. **验证清单**：
+   - 按 Home 键 → 应该回到本应用（回不到系统桌面）✓
+   - 页面里点一个外部链接 → 应弹「已限制访问」
+   - 按音量键 → 无反应
+   - 下拉状态栏 → 被隐藏
+   - 网页内有下一层页面时按返回 → 能后退一页
+   - 左上角双击 + 右下角双击 → 弹 PIN 框，输对进设置、输错报错
+   - 重启平板 → 应自动进入本应用
 
 ---
 
@@ -184,7 +175,6 @@ Android 不允许普通应用拦截 HOME 键。**本 App 已内置 Fully Kiosk �
 > **设置 → 桌面接管 → 「设为默认桌面」按钮 → 系统弹选择框 → 选「车间生产系统」+「始终」**
 
 设为默认桌面后：
-
 - 工人按 Home 键 → **只会回到本应用**，回不到系统桌面，打不开其他应用
 - 开机 → 系统直接进本应用（比自启动广播更可靠）
 - 保存 Kiosk 锁定时，若未设置会**自动弹窗引导**（和 Fully Kiosk 一样的流程）
@@ -192,8 +182,8 @@ Android 不允许普通应用拦截 HOME 键。**本 App 已内置 Fully Kiosk �
 
 备选方案（不想接管桌面时）：
 
-| 方案  | 做法  | 效果  |
-| --- | --- | --- |
+| 方案 | 做法 | 效果 |
+|---|---|---|
 | 系统屏幕固定 | `设置 → 安全 → 更多安全设置 → 屏幕固定` → 钉住本 App | HOME/返回/多任务全部失效 |
 | ADB 设备所有者 | 每台连电脑跑 `dpm set-device-owner` | 最彻底，但每台需删账户 + 电脑操作 |
 
@@ -217,24 +207,20 @@ Android 10+ 限制后台启动 Activity。已尽力兼容（BOOT_COMPLETED / QUI
 1. 装 [Android Studio](https://developer.android.com/studio)（自带 JDK 17 + SDK）
 2. 用 Android Studio 打开 `kiosk-app` 目录，等待 Gradle Sync
 3. 生成签名密钥（在工程根目录执行，Windows CMD）：
-  
-  ```
-  keytool -genkeypair -v -keystore kiosk-release.jks -alias kiosk -keyalg RSA -keysize 2048 -validity 10000 -storepass kiosk2026 -keypass kiosk2026 -dname "CN=Kiosk, OU=IT, O=Yichi, L=Fujian, ST=Fujian, C=CN"
-  ```
-  
-  macOS / Linux / Git Bash 用 `\` 续行。
+   ```
+   keytool -genkeypair -v -keystore kiosk-release.jks -alias kiosk -keyalg RSA -keysize 2048 -validity 10000 -storepass kiosk2026 -keypass kiosk2026 -dname "CN=Kiosk, OU=IT, O=Yichi, L=Fujian, ST=Fujian, C=CN"
+   ```
+   macOS / Linux / Git Bash 用 `\` 续行。
 4. 菜单 **Build → Build Bundle(s) / APK(s) → Build APK(s)**
 5. 产物：`app/build/outputs/apk/release/app-release.apk`
 
 > 若不想把密码写在 build.gradle 里，可在根目录建 `keystore.properties`：
-> 
 > ```
 > storeFile=kiosk-release.jks
 > storePassword=你的密码
 > keyAlias=kiosk
 > keyPassword=你的密码
 > ```
-> 
 > 该文件已在 `.gitignore` 中，不会误提交。
 
 只想要能装的包、不急 release：直接 **Build → Build APK(s)** 用 debug 包也可以，功能完全一样。
@@ -243,11 +229,11 @@ Android 10+ 限制后台启动 Activity。已尽力兼容（BOOT_COMPLETED / QUI
 
 ## 九、排错速查
 
-| 现象  | 原因  | 处理  |
-| --- | --- | --- |
+| 现象 | 原因 | 处理 |
+|---|---|---|
 | `Plugin [id: 'com.android.application'] was not found` | settings.gradle 缺仓库 | v1.0.1 已修；确认文件已上传 |
 | `Keystore file not found` | 没生成 jks | 执行 keytool 命令，或先只打 debug 包 |
-| 装到平板闪退 | 看 logcat | 开 USB 调试，`adb logcat \\| grep yichi` |
+| 装到平板闪退 | 看 logcat | 开 USB 调试，`adb logcat \| grep yichi` |
 | 开机不自启 | ROM 杀后台 | ZUI 三个开关；或设为默认桌面 |
 | 按 Home 能回桌面 | 平台限制 | 设为默认桌面 / 屏幕固定 |
 | 点生产系统里的链接被误拦 | 生产系统跨了域名 | 设置里关掉「锁定访问域名」，或让 IT 统一域名 |
