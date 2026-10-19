@@ -80,14 +80,16 @@ public class MainActivity extends Activity {
 
         applyOrientation();
 
+        // PIN 初始化必须放在崩溃检查之前：
+        // 安全模式逃生页的「进入系统设置」要验 PIN，若此时哈希还没落地会永远验证不过
+        if (!cfg.hasPin()) {
+            cfg.setPin(KioskConfig.DEFAULT_PIN);
+        }
+
         // 崩溃安全模式：5 分钟内崩溃 ≥2 次 → 不加载 WebView，进入原生逃生页
         if (cfg.isCrashLooping()) {
             enterSafeMode();
             return;
-        }
-
-        if (!cfg.hasPin()) {
-            cfg.setPin(KioskConfig.DEFAULT_PIN);
         }
 
         touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
