@@ -119,8 +119,9 @@ public class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable reloadRunnable;
 
-    // 切后台自动回前台：任何原因离开本应用，600ms 内把自己拉回最前（kiosk 锁定下）。
+    // 切后台自动回前台：任何原因离开本应用，300ms 内把自己拉回最前（kiosk 锁定下）。
     // allowBackgroundOnce：管理员主动跳系统界面（锁屏验证/系统设置）时豁免，避免被误拉回。
+    private static final long BACK_TO_FRONT_MS = 300;
     private boolean allowBackgroundOnce;
 
     // 加载超时检测：25 秒还没加载完就显示错误页（正常内网页面几秒内必开）
@@ -953,7 +954,7 @@ public class MainActivity extends Activity {
         }
         if (cfg != null && cfg.isKioskEnabled() && !safeMode && !isFinishing()
                 && !isChangingConfigurations() && !SettingsActivity.isOpen()) {
-            handler.postDelayed(this::bringSelfToFront, 600);
+            handler.postDelayed(this::bringSelfToFront, BACK_TO_FRONT_MS);
         }
     }
 

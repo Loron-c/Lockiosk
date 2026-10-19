@@ -390,8 +390,7 @@ public class SettingsActivity extends Activity {
                         + "• 工人可按 Home 回桌面、可打开其他应用\n"
                         + "• 网页可自由跳转到外部网站\n"
                         + (isDefaultHome()
-                        ? "\n⚠️ 当前本应用是默认桌面，按 Home 仍会回到本应用。\n"
-                        + "如需彻底恢复，请到：设置 → 应用 → 默认应用 → 主屏幕应用 改回原桌面。\n"
+                        ? "\n本应用当前是默认桌面，确认后将自动改回系统桌面。\n"
                         : "")
                         + "\n确认继续请输入管理员密码。")
                 .setView(box)
@@ -404,8 +403,14 @@ public class SettingsActivity extends Activity {
                     // 先收集其余界面配置，再强制关闭锁定，避免后续保存把它改回来
                     collectFromUi();
                     cfg.setKioskEnabled(false);
+                    // 取消锁定时自动把默认桌面恢复给系统桌面：
+                    // 清除本应用被用户设成的「首选默认」（App 有权清除自己的默认设置）
+                    try {
+                        getPackageManager().clearPackagePreferredActivities(getPackageName());
+                    } catch (Exception ignored) {
+                    }
                     Toast.makeText(this,
-                            "已取消锁定，平板恢复正常使用\n要重新锁定请再次进入设置勾选",
+                            "已取消锁定，平板恢复正常使用\n默认桌面已自动改回系统桌面",
                             Toast.LENGTH_LONG).show();
                     setResult(RESULT_OK);
                     finish();
