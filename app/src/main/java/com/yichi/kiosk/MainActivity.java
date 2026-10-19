@@ -516,16 +516,22 @@ public class MainActivity extends Activity {
 
     // ---------- 全屏沉浸 ----------
 
-    // 状态栏巡检：每 300ms 主动收回一次系统栏（Fully Kiosk 同款效果：
-    // 即使工人滑出通知栏，最多停留 0.3 秒立刻缩回，来不及点任何内容）。
-    // 被动监听在 ZUI 上不可靠（不回调），主动轮询 + 无条件收回保证生效。
+    // 状态栏巡检：每 300ms 检查一次系统栏是否被滑出，露出来才收回。
+    // 注意：绝不能无条件调用收回 —— 反复触发窗口/沉浸式操作会重置系统息屏计时器，
+    // 导致屏幕永远不息（曾因此出现「关了常亮也息不了屏」的 bug）。
     private static final long BAR_POLL_MS = 300;
     private final Runnable barPollRunnable = this::pollBars;
 
+    @SuppressWarnings("deprecation")
     private void pollBars() {
         if (cfg != null && cfg.isKioskEnabled() && !safeMode) {
-            collapseNotificationPanels();
-            enterImmersive();
+            int vis = getWindow().getDecorView().getSystemUiVisibility();
+            boolean navVisible = (vis & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
+            boolean statusVisible = (vis & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0;
+            if (navVisible || (cfg.isHideStatusbar() && statusVisible)) {
+                collapseNotificationPanels();
+                enterImmersive();
+            }
         }
         if (!isDestroyed() && !isFinishing()) {
             handler.postDelayed(barPollRunnable, BAR_POLL_MS);
