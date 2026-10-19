@@ -7,8 +7,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Android 10+ 后台启动 Activity 需要（部分厂商生效） -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <!-- Android 13+ 通知权限（全屏启动兜底通知用） -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".KioskApp"
