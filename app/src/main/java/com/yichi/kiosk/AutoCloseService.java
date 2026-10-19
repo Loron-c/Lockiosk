@@ -50,12 +50,18 @@ public class AutoCloseService extends AccessibilityService {
         List<AccessibilityWindowInfo> windows = getWindows();
         if (windows == null) return false;
         for (AccessibilityWindowInfo w : windows) {
-            if (w.isActive() && w.getType() == AccessibilityWindowInfo.TYPE_APPLICATION) {
-                CharSequence title = w.getTitle();
-                // 面板窗口通常没有标题或归属 systemui 进程
-                if (title != null && (title.toString().contains("通知")
+            // 只认「焦点在系统界面、且不是状态栏/输入法」的窗口 = 展开中的面板
+            if (w.isFocused() && w.getType() != AccessibilityWindowInfo.TYPE_SYSTEM_BAR
+                    && w.getType() != AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
+                CharSequence title = null;
+                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    title = w.getTitle();
+                }
+                if (title == null || title.length() == 0
+                        || title.toString().contains("通知")
                         || title.toString().contains("Notification")
-                        || title.toString().contains("快捷"))) {
+                        || title.toString().contains("快捷")
+                        || title.toString().contains("Shuttle")) {
                     return true;
                 }
             }
