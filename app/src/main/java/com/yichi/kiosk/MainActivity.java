@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
                         : WindowManager.LayoutParams.TYPE_PHONE; // Android 8.0 以下
                 WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                         WindowManager.LayoutParams.MATCH_PARENT,
-                        (int) (24 * getResources().getDisplayMetrics().density),
+                        (int) (40 * getResources().getDisplayMetrics().density),
                         type,
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                                 | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
@@ -171,6 +171,7 @@ public class MainActivity extends Activity {
 
         setContentView(root);
         startBarsWatcher(); // 状态栏被滑出 → 立刻收回去
+        handler.post(barPollRunnable); // 主动巡检兜底
 
         showLoading("正在加载生产系统…");
         loadHome();
@@ -504,6 +505,28 @@ public class MainActivity extends Activity {
     }
 
     // ---------- 全屏沉浸 ----------
+
+    // 状态栏巡检：每 300ms 主动检查一次系统栏是否被滑出，展开就立刻收回。
+    // 被动监听在 ZUI 上不可靠（部分机型不回调），主动轮询保证收得回去。
+    private static final long BAR_POLL_MS = 300;
+    private final Runnable barPollRunnable = this::pollBars;
+
+    @SuppressWarnings("deprecation")
+    private void pollBars() {
+        if (cfg != null && cfg.isKioskEnabled() && !safeMode) {
+            int vis = getWindow().getDecorView().getSystemUiVisibility();
+            boolean navVisible = (vis & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
+            boolean statusVisible = (vis & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0;
+            boolean statusRelevant = cfg.isHideStatusbar();
+            if (navVisible || (statusRelevant && statusVisible)) {
+                collapseNotificationPanels();
+                enterImmersive();
+            }
+        }
+        if (!isDestroyed() && !isFinishing()) {
+            handler.postDelayed(barPollRunnable, BAR_POLL_MS);
+        }
+    }
 
     /**
      * 检测到状态栏/导航栏被滑出（如工人下拉通知栏）时，
@@ -896,6 +919,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        handler.removeCallbacks(barPollRunnable);
         if (statusBarGuard != null) {
             try {
                 ((WindowManager) getSystemService(WINDOW_SERVICE)).removeView(statusBarGuard);

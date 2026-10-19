@@ -177,6 +177,37 @@ public class SettingsActivity extends Activity {
         homeTip.setPadding(0, dp(8), 0, dp(8));
         ll.addView(homeTip);
 
+        ll.addView(sectionTitle("系统级加固（ZUI 特有问题的最终兜底）"));
+        TextView hardenTip = new TextView(this);
+        hardenTip.setText("开启「屏幕固定」后：下拉通知栏、返回键、多任务全部失效，"
+                + "ZUI 上一些 App 拦不住的手势由系统直接锁死（无需连电脑）。\n"
+                + "操作：点下方按钮 → 在打开的「安全」设置页里找「屏幕固定/App 固定」→ 打开开关。\n"
+                + "启用：多任务界面长按本应用 → 选固定；取消：长按返回键。重启平板后需重新固定。");
+        hardenTip.setTextSize(13);
+        hardenTip.setPadding(0, dp(4), 0, dp(8));
+        ll.addView(hardenTip);
+        Button btnPin = addButton(ll, "打开「屏幕固定」设置（系统安全设置页）");
+        btnPin.setOnClickListener(v -> {
+            // 逐级兜底：安全设置 → 应用管理
+            String[] actions = {
+                    "android.settings.SECURITY_SETTINGS",
+                    "android.settings.APPLICATION_SETTINGS"
+            };
+            for (String a : actions) {
+                try {
+                    Intent i = new Intent(a);
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(i);
+                    Toast.makeText(this, "在安全设置里找「屏幕固定 / App 固定」并开启",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                } catch (Exception ignored) {
+                }
+            }
+            Toast.makeText(this, "无法打开，请手动到 设置 → 安全 找「屏幕固定」",
+                    Toast.LENGTH_LONG).show();
+        });
+
         ll.addView(sectionTitle("防卸载（可选）"));
         Button btnAdmin = addButton(ll, "激活设备管理器（激活后无法常规卸载）");
         btnAdmin.setOnClickListener(v -> toggleDeviceAdmin());
