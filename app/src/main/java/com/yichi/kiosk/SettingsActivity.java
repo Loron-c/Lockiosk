@@ -404,13 +404,18 @@ public class SettingsActivity extends Activity {
                     collectFromUi();
                     cfg.setKioskEnabled(false);
                     // 取消锁定时自动把默认桌面恢复给系统桌面：
-                    // 清除本应用被用户设成的「首选默认」（App 有权清除自己的默认设置）
+                    // 清除本应用被用户设成的「首选默认」（App 有权清除自己的默认设置）。
+                    // 注意：部分 ROM（含部分 ZUI 版本）把默认桌面存在系统私有设置里，
+                    // 此调用会静默无效 —— 提示语里兜底引导手动操作。
                     try {
                         getPackageManager().clearPackagePreferredActivities(getPackageName());
                     } catch (Exception ignored) {
                     }
                     Toast.makeText(this,
-                            "已取消锁定，平板恢复正常使用\n默认桌面已自动改回系统桌面",
+                            "已取消锁定，平板恢复正常使用\n"
+                                    + "若按 Home 仍回到本应用，请手动到：\n"
+                                    + "设置 → 应用 → 默认应用 → 主屏幕应用\n"
+                                    + "改回 ZUI 桌面",
                             Toast.LENGTH_LONG).show();
                     setResult(RESULT_OK);
                     finish();
