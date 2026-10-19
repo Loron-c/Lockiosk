@@ -170,6 +170,7 @@ public class MainActivity extends Activity {
         root.addView(loadingView);
 
         setContentView(root);
+        startBarsWatcher(); // 状态栏被滑出 → 立刻收回去
 
         showLoading("正在加载生产系统…");
         loadHome();
@@ -503,6 +504,36 @@ public class MainActivity extends Activity {
     }
 
     // ---------- 全屏沉浸 ----------
+
+    /**
+     * 检测到状态栏/导航栏被滑出（如工人下拉通知栏）时，
+     * 立刻收起通知面板并重新进入沉浸式 —— 效果：刚滑下来就弹回去。
+     * 与悬浮挡板（拦手势）叠加：挡板拦得住最好，拦不住也能秒收回。
+     */
+    @SuppressWarnings("deprecation")
+    private void startBarsWatcher() {
+        final View decor = getWindow().getDecorView();
+        decor.setOnSystemUiVisibilityChangeListener(vis -> {
+            boolean navVisible = (vis & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
+            boolean statusVisible = (vis & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0;
+            if ((navVisible || statusVisible) && !safeMode) {
+                handler.postDelayed(() -> {
+                    collapseNotificationPanels();
+                    if (cfg.isKioskEnabled()) enterImmersive();
+                }, 80);
+            }
+        });
+    }
+
+    /** 通过反射调用系统的「收起通知栏面板」（公开 API 里没有） */
+    private void collapseNotificationPanels() {
+        try {
+            Object sb = getSystemService("statusbar");
+            sb.getClass().getMethod("collapsePanels").invoke(sb);
+        } catch (Throwable ignored) {
+            // 部分系统禁用了此接口：静默降级，至少重新进入沉浸式把栏藏回去
+        }
+    }
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
