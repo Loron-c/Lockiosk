@@ -69,6 +69,10 @@ public class MainActivity extends Activity {
     // 侧滑返回拦截：默认只拦左边缘（ZUI 返回手势方向）
     private static final boolean BLOCK_RIGHT_EDGE = false;
     private static final int EDGE_SWIPE_DP = 24;
+    // 顶部边缘拦截：吞掉从屏幕最顶边下划的手势，防止拉出通知栏
+    private static final int TOP_EDGE_DP = 28;
+    // 本次手势是否起始于被封锁的边缘区（起了头就整条手势都吃掉）
+    private boolean gestureFromBlockedEdge = false;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable reloadRunnable;
@@ -548,16 +552,22 @@ public class MainActivity extends Activity {
                 downY = ev.getY();
                 downTime = System.currentTimeMillis();
                 // 边缘手势拦截仅在锁定开启时生效
-                if (cfg.isKioskEnabled() && isEdgeSwipeStart(ev.getX())) {
-                    return true;
+                gestureFromBlockedEdge = cfg.isKioskEnabled() && isEdgeSwipeStart(ev.getX(), ev.getY());
+                if (gestureFromBlockedEdge) {
+                    return true; // 起点在边缘封锁区：整条手势吞掉（拦左滑返回 + 顶部下拉通知栏）
                 }
                 break;
 
             case MotionEvent.ACTION_MOVE:
+                if (gestureFromBlockedEdge) return true;
                 if (cfg.isKioskEnabled() && isRealEdgeSwipe(ev)) return true;
                 break;
 
             case MotionEvent.ACTION_UP:
+                if (gestureFromBlockedEdge) {
+                    gestureFromBlockedEdge = false;
+                    return true;
+                }
                 if (cfg.isKioskEnabled() && isRealEdgeSwipe(ev)) return true;
                 float dx = Math.abs(ev.getX() - downX);
                 float dy = Math.abs(ev.getY() - downY);
@@ -569,21 +579,28 @@ public class MainActivity extends Activity {
                 break;
 
             case MotionEvent.ACTION_CANCEL:
-                if (cfg.isKioskEnabled() && isEdgeSwipeStart(downX)) return true;
+                if (gestureFromBlockedEdge) {
+                    gestureFromBlockedEdge = false;
+                    return true;
+                }
+                if (cfg.isKioskEnabled() && isEdgeSwipeStart(downX, downY)) return true;
                 break;
         }
         return super.dispatchTouchEvent(ev);
     }
 
-    private boolean isEdgeSwipeStart(float x) {
+    /** 起点（含顶部边缘）是否落在封锁区 */
+    private boolean isEdgeSwipeStart(float x, float y) {
         float edge = EDGE_SWIPE_DP * getResources().getDisplayMetrics().density;
-        if (x < edge) return true;
+        float top = TOP_EDGE_DP * getResources().getDisplayMetrics().density;
+        if (y < top) return true;                    // 顶部：拦下拉通知栏
+        if (x < edge) return true;                   // 左缘：拦侧滑返回
         if (BLOCK_RIGHT_EDGE && x > root.getWidth() - edge) return true;
         return false;
     }
 
     private boolean isRealEdgeSwipe(MotionEvent ev) {
-        if (!isEdgeSwipeStart(downX)) return false;
+        if (!isEdgeSwipeStart(downX, downY)) return false;
         float dx = Math.abs(ev.getX() - downX);
         float dy = Math.abs(ev.getY() - downY);
         return dx > touchSlop * 2 && dx > dy;
