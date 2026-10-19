@@ -56,6 +56,7 @@ public class MainActivity extends Activity {
     private long tlTap1 = 0;   // 左上第一击
     private long tlTap2 = 0;   // 左上第二击（双击成立）
     private long brTap1 = 0;   // 右下第一击
+    private int blockCount = 0; // 域锁连续拦截计数（防跳转循环）
     private static final long DOUBLE_TAP_MS = 700;
     private static final long SEQ_WINDOW_MS = 4000;
     private static final int CORNER_SIZE_DP = 100;
@@ -71,6 +72,19 @@ public class MainActivity extends Activity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable reloadRunnable;
+
+    // 加载超时检测：25 秒还没加载完就显示错误页（正常内网页面几秒内必开）
+    private static final long LOAD_TIMEOUT_MS = 25_000;
+    private final Runnable loadTimeoutRunnable = () -> {
+        if (loadingView != null && loadingView.getVisibility() == View.VISIBLE
+                && !safeMode) {
+            showError("加载超时（超过 25 秒）\n\n可能原因：\n"
+                    + "1. 生产系统网址填错（请进设置核对）\n"
+                    + "2. 内网证书问题（新版本已放行自签名证书，请确认装的是最新 APK）\n"
+                    + "3. 登录跳转被域名锁定拦截（进设置暂时关掉「锁定访问域名」再试）\n\n"
+                    + "点击屏幕可重试");
+        }
+    };
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -231,10 +245,23 @@ public class MainActivity extends Activity {
                 if (!isAllowedHost(host)) {
                     view.stopLoading();
                     handler.post(() -> {
-                        Toast.makeText(MainActivity.this,
-                                "已拦截跳转：" + host, Toast.LENGTH_SHORT).show();
-                        loadHome();
+                        blockCount++;
+                        if (blockCount >= 2) {
+                            // 反复被拦 = 登录流程跳到了别的域名，停止循环重试并明示
+                            blockCount = 0;
+                            showError("登录跳转被「域名锁定」拦截\n\n"
+                                    + "生产系统跳到了另一个域名（" + host + "）。\n"
+                                    + "解决：进设置 → 暂时关闭「锁定访问域名」试一次。\n"
+                                    + "若确认需要该域名长期放行，请联系开发把白名单加上。\n\n"
+                                    + "点击屏幕可重试");
+                        } else {
+                            Toast.makeText(MainActivity.this,
+                                    "已拦截跳转：" + host, Toast.LENGTH_SHORT).show();
+                            loadHome();
+                        }
                     });
+                } else {
+                    blockCount = 0;
                 }
             }
 
@@ -251,6 +278,26 @@ public class MainActivity extends Activity {
                 if (!TextUtils.isEmpty(failingUrl) && failingUrl.equals(cfg.getUrl())) {
                     showError("网络连接失败\n\n请检查：\n1. 平板是否连上厂区 WiFi\n2. 生产系统服务器是否正常\n\n" + description);
                 }
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest req,
+                                        android.webkit.WebResourceError error) {
+                // 新 API：只要是主框架失败就显示错误页（不再要求网址与首页完全相等，
+                // 否则登录跳转后的地址加载失败会白屏无提示）
+                if (req.isForMainFrame()) {
+                    showError("页面加载失败\n\n请检查：\n1. 平板是否连上厂区 WiFi\n2. 生产系统服务器是否正常\n\n"
+                            + error.getDescription());
+                }
+            }
+
+            @Override
+            public void onReceivedSslError(WebView view,
+                                           android.webkit.SslErrorHandler handler,
+                                           android.net.http.SslError error) {
+                // 内网生产系统常见自签名证书，WebView 默认静默取消 → 白屏。
+                // 放行安全性由「域名锁定」兜底：只能访问生产系统域名，放行的也只是它。
+                handler.proceed();
             }
         });
 
@@ -353,6 +400,8 @@ public class MainActivity extends Activity {
         if (loadingView != null) {
             loadingText.setText(msg);
             loadingView.setVisibility(View.VISIBLE);
+            handler.removeCallbacks(loadTimeoutRunnable);
+            handler.postDelayed(loadTimeoutRunnable, LOAD_TIMEOUT_MS);
         }
     }
 
@@ -369,7 +418,10 @@ public class MainActivity extends Activity {
     }
 
     private void hideLoading() {
-        if (loadingView != null) loadingView.setVisibility(View.GONE);
+        if (loadingView != null) {
+            loadingView.setVisibility(View.GONE);
+            handler.removeCallbacks(loadTimeoutRunnable);
+        }
     }
 
     private void applyKeepAwake() {
@@ -729,6 +781,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        // 修复：onPause 里 webView.onPause() 后，回来必须 onResume()，
+        // 否则页面显示着但整个网页暂停、点不动（切后台再回来必现）
+        if (webView != null) webView.onResume();
         if (!safeMode && cfg.isKioskEnabled()) {
             enterImmersive();
         }

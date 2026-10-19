@@ -348,28 +348,35 @@ public class SettingsActivity extends Activity {
     }
 
     /**
-     * 弹出系统「选择主屏幕应用」对话框。
+     * 打开系统「主屏幕应用」设置页，用户手动把默认桌面切到本应用。
      *
-     * 原理：本应用已在 Manifest 注册 CATEGORY_HOME（主屏幕候选），
-     * 由它发出一个 ACTION_MAIN/CATEGORY_HOME 的 Intent，
-     * 系统就会弹出「Use as default home / 始终 / 仅此一次」选择框，
-     * 用户选「车间生产系统」+「始终」即完成接管。
-     * 与 Fully Kiosk 开启时的引导流程一致。
+     * 修复：原实现是发 ACTION_MAIN+CATEGORY_HOME 的 Intent 期望系统弹选择框，
+     * 但在 ZUI 等国产 ROM 上该 Intent 只会直接回到当前桌面，不弹框。
+     * ACTION_HOME_SETTINGS（API 21+）是所有 ROM 都支持的官方入口。
      */
     private void showHomePicker() {
-        try {
-            Intent i = new Intent(Intent.ACTION_MAIN);
-            i.addCategory(Intent.CATEGORY_HOME);
-            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(i);
-            // 选择框关闭回来后刷新状态（用户可能已选择本应用）
-            new android.os.Handler(android.os.Looper.getMainLooper())
-                    .postDelayed(this::refreshHomeStatus, 800);
-        } catch (Exception e) {
-            Toast.makeText(this,
-                    "无法弹出系统选择框，请到：\n设置 → 应用 → 默认应用 → 主屏幕应用\n手动选择本应用",
-                    Toast.LENGTH_LONG).show();
+        // 逐级兜底：主屏幕设置 → 默认应用设置 → 系统设置首页
+        Intent[] candidates = new Intent[]{
+                new Intent("android.settings.HOME_SETTINGS"),
+                new Intent("android.settings.MANAGE_DEFAULT_APPS_SETTINGS"),
+                new Intent(android.provider.Settings.ACTION_SETTINGS)
+        };
+        for (Intent i : candidates) {
+            try {
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                Toast.makeText(this,
+                        "在打开的页面里选「主屏幕应用/桌面」→ 选「车间生产系统」",
+                        Toast.LENGTH_LONG).show();
+                new android.os.Handler(android.os.Looper.getMainLooper())
+                        .postDelayed(this::refreshHomeStatus, 800);
+                return;
+            } catch (Exception ignored) {
+            }
         }
+        Toast.makeText(this,
+                "无法打开系统设置，请手动到：\n设置 → 应用 → 默认应用 → 主屏幕应用\n选择本应用",
+                Toast.LENGTH_LONG).show();
     }
 
     // ---------- 保存 ----------
@@ -417,7 +424,7 @@ public class SettingsActivity extends Activity {
                     .setTitle("建议：设为默认桌面")
                     .setMessage("检测到 Kiosk 锁定已开启，但本应用还不是默认桌面。\n\n"
                             + "不设置的话，工人按 Home 键可以回到系统桌面、打开其他应用。\n\n"
-                            + "现在设置吗？（会弹出系统选择框，选「车间生产系统」并点「始终」）")
+                            + "现在设置吗？（会跳到系统「主屏幕应用」设置页，选「车间生产系统」即可）")
                     .setPositiveButton("现在设置", (d, w) -> {
                         showHomePicker();
                         finishAfterSave();
