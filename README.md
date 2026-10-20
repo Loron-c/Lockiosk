@@ -78,6 +78,4 @@ app/src/main/java/com/yichi/kiosk/
 .github/workflows/main.yml  # CI：云端构建 + Secrets 签名
 ```
 
-## License
 
-MIT
