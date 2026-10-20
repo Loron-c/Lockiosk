@@ -118,7 +118,7 @@ public class SettingsActivity extends Activity {
                     Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                             Uri.parse("package:" + getPackageName()));
                     startActivity(i);
-                    Toast.makeText(this, "请在新页面中允许「车间生产系统」显示在其他应用上层",
+                    Toast.makeText(this, "请在新页面中允许「Lockiosk」显示在其他应用上层",
                             Toast.LENGTH_LONG).show();
                 } catch (Exception e) {
                     Toast.makeText(this, "无法打开权限页面：" + e.getMessage(),
@@ -219,7 +219,7 @@ public class SettingsActivity extends Activity {
         TextView a11yTip = new TextView(this);
         a11yTip.setText("ZUI 的通知栏面板只能由无障碍服务感知并代按返回键关闭（滑出来立刻缩回，"
                 + "与 Fully Kiosk 同款原理）。仅监听系统弹窗事件，未开 Kiosk 锁定时完全不干预。\n"
-                + "操作：点下方按钮 → 在列表里找到「车间生产系统」→ 打开开关。");
+                + "操作：点下方按钮 → 在列表里找到「Lockiosk」→ 打开开关。");
         a11yTip.setTextSize(13);
         a11yTip.setPadding(0, dp(4), 0, dp(8));
         ll.addView(a11yTip);
@@ -229,7 +229,7 @@ public class SettingsActivity extends Activity {
                 Intent i = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(i);
-                Toast.makeText(this, "在无障碍服务列表里找到「车间生产系统」并打开",
+                Toast.makeText(this, "在无障碍服务列表里找到「Lockiosk」并打开",
                         Toast.LENGTH_LONG).show();
             } catch (Exception e) {
                 Toast.makeText(this, "无法打开，请手动到 设置 → 无障碍 开启本应用的服务",
@@ -474,7 +474,7 @@ public class SettingsActivity extends Activity {
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(i);
                 Toast.makeText(this,
-                        "在打开的页面里选「主屏幕应用/桌面」→ 选「车间生产系统」",
+                        "在打开的页面里选「主屏幕应用/桌面」→ 选「Lockiosk」",
                         Toast.LENGTH_LONG).show();
                 new android.os.Handler(android.os.Looper.getMainLooper())
                         .postDelayed(this::refreshHomeStatus, 800);
@@ -532,7 +532,7 @@ public class SettingsActivity extends Activity {
                     .setTitle("建议：设为默认桌面")
                     .setMessage("检测到 Kiosk 锁定已开启，但本应用还不是默认桌面。\n\n"
                             + "不设置的话，工人按 Home 键可以回到系统桌面、打开其他应用。\n\n"
-                            + "现在设置吗？（会跳到系统「主屏幕应用」设置页，选「车间生产系统」即可）")
+                            + "现在设置吗？（会跳到系统「主屏幕应用」设置页，选「Lockiosk」即可）")
                     .setPositiveButton("现在设置", (d, w) -> {
                         showHomePicker();
                         finishAfterSave();
