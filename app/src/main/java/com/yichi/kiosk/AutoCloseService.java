@@ -17,56 +17,32 @@ import java.util.List;
  */
 public class AutoCloseService extends AccessibilityService {
 
+    private long lastBackAt = 0;
+    private static final long BACK_DEBOUNCE_MS = 800;
+
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null) return;
         if (!new KioskConfig(this).isKioskEnabled()) return; // 未锁定时不干预
 
-        int type = event.getEventType();
-        boolean shadeOpen;
+        // 修复：只认「系统界面(systemui)弹出的、类名含状态栏/通知特征」的窗口变化。
+        // 旧版另有一个 WINDOWS_CHANGED 分支用「焦点窗口非系统栏」判定面板 —— 但焦点窗口
+        // 永远是前台 App 自己的窗口，判定恒真，会把 PIN 弹窗等普通窗口误杀（代按 BACK 关掉）。
+        if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
 
-        if (type == AccessibilityEvent.TYPE_WINDOWS_CHANGED) {
-            shadeOpen = hasSystemUiPanel();
-        } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            CharSequence cn = event.getClassName();
-            CharSequence pkg = event.getPackageName();
-            shadeOpen = pkg != null && "com.android.systemui".contentEquals(pkg)
-                    && cn != null
-                    && (cn.toString().contains("StatusBar")
-                    || cn.toString().contains("Notification")
-                    || cn.toString().contains("Shade"));
-        } else {
-            return;
-        }
+        CharSequence cn = event.getClassName();
+        CharSequence pkg = event.getPackageName();
+        boolean shadeOpen = pkg != null && "com.android.systemui".contentEquals(pkg)
+                && cn != null
+                && (cn.toString().contains("StatusBar")
+                || cn.toString().contains("Notification")
+                || cn.toString().contains("Shade"));
 
-        if (shadeOpen) {
-            // 面板打开 → 代按返回键关闭（面板关闭后多余的 BACK 由 WebView 正常处理）
+        // 去抖：避免连续事件把 BACK 发给网页导致异常后退
+        if (shadeOpen && System.currentTimeMillis() - lastBackAt > BACK_DEBOUNCE_MS) {
+            lastBackAt = System.currentTimeMillis();
             performGlobalAction(GLOBAL_ACTION_BACK);
         }
-    }
-
-    /** 当前屏幕上是否存在系统界面弹出的非系统栏窗口（即展开中的面板） */
-    private boolean hasSystemUiPanel() {
-        List<AccessibilityWindowInfo> windows = getWindows();
-        if (windows == null) return false;
-        for (AccessibilityWindowInfo w : windows) {
-            // 只认「焦点在系统界面、且不是状态栏/输入法」的窗口 = 展开中的面板
-            if (w.isFocused() && w.getType() != AccessibilityWindowInfo.TYPE_SYSTEM
-                    && w.getType() != AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
-                CharSequence title = null;
-                if (android.os.Build.VERSION.SDK_INT >= 33) {
-                    title = w.getTitle();
-                }
-                if (title == null || title.length() == 0
-                        || title.toString().contains("通知")
-                        || title.toString().contains("Notification")
-                        || title.toString().contains("快捷")
-                        || title.toString().contains("Shuttle")) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     @Override
