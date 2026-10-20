@@ -1,7 +1,7 @@
 # Lockiosk — Android Kiosk 锁屏应用
 
 > 自研 Android Kiosk（专用终端锁定）应用：让平板/触控屏设备**只能运行一个指定网页，其他什么都做不了**。
-> 等效替代商业软件 Fully Kiosk 的核心能力：零授权成本、可深度定制、构建与签名全程自主可控。
+> 核心能力：零授权成本、可深度定制、构建与签名全程自主可控。
 
 [![Build Kiosk APK](https://github.com/Loron-c/Lockiosk/actions/workflows/main.yml/badge.svg)](https://github.com/Loron-c/Lockiosk/actions/workflows/main.yml)
 ![Platform](https://img.shields.io/badge/platform-Android%2010%2B-blue)
@@ -43,7 +43,7 @@
 
 ### 云端构建（GitHub Actions，本机零环境）
 
-1. 生成签名密钥并转 base64，配成仓库 Secret `KEYSTORE_B64`（密钥只存 Secret，**绝不提交仓库**）
+1. 生成签名密钥并转 base64，配成仓库 Secret `KEYSTORE_B64`（密钥只存 Secret）
 2. Actions → **Build Kiosk APK** → Run workflow → 下载 Artifacts 中的 `kiosk-apk.zip`
 
 ### 配置流程
@@ -53,7 +53,7 @@
 3. 设置管理员 PIN → 勾「启用 Kiosk 锁定」→ 保存 → 按引导设为默认桌面
 4. 其余设备通过「导入配置文件」同步全部设置
 
-### 设备侧权限配置（联想小新 ZUI 必做，否则后台拉起/开机自启会被系统杀掉）
+### 设备侧权限配置（以联想小新 ZUI 为开发测试系统）
 
 `设置 → 应用管理 → Lockiosk`：
 
