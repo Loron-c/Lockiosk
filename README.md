@@ -38,17 +38,6 @@
 - **签名一致性决定能否覆盖升级**：CI 使用固定 JKS 密钥（仅存 GitHub Secrets，构建脚本无密钥即失败），杜绝「构建一次换一个签名」导致的升级丢数据
 - **密码侧只存哈希**：配置导出同步的也是哈希，任何环节都不出现明文
 
-## 截图
-
-![](C:/Users/721-2/AppData/Roaming/marktext/images/2026-10-20-14-10-44-pic(12).jpg)
-
-![](C:/Users/721-2/AppData/Roaming/marktext/images/2026-10-20-14-10-49-pic(13).jpg)![](C:/Users/721-2/AppData/Roaming/marktext/images/2026-10-20-14-10-53-pic(11).jpg)
-
-<!-- 可补充真机截图并取消注释：
-
-![锁屏主界面](docs/screenshot-main.png)
-![管理设置页](docs/screenshot-settings.png)
--->
 
 ## 构建与使用
 
