@@ -53,7 +53,8 @@ public class AutoCloseService extends AccessibilityService {
     /** 巡检通道：ROM 不广播事件时也能感知面板 */
     private void pollOnce() {
         try {
-            if (new KioskConfig(this).isKioskEnabled() && hasExpandedSystemUiPanel()) {
+            if (new KioskConfig(this).isKioskEnabled() && !KioskApp.isAdminSession()
+                    && hasExpandedSystemUiPanel()) {
                 sendBack();
             }
         } catch (Throwable ignored) {
@@ -65,6 +66,7 @@ public class AutoCloseService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null) return;
         if (!new KioskConfig(this).isKioskEnabled()) return; // 未锁定时不干预
+        if (KioskApp.isAdminSession()) return; // 管理会话期间静默（管理员可能在解系统锁屏）
 
         int type = event.getEventType();
         boolean shadeOpen;
