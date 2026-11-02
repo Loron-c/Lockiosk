@@ -3,6 +3,7 @@ package com.yichi.kiosk;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
@@ -12,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -73,7 +75,8 @@ public class MainActivity extends Activity {
     private void applyStatusBarGuard() {
         WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         boolean need = cfg.isKioskEnabled() && cfg.isHideStatusbar()
-                && Settings.canDrawOverlays(this);
+                && Settings.canDrawOverlays(this)
+                && !KioskApp.isAdminSession(); // 管理会话期间不挂挡板，管理员可看通知栏
         if (need && statusBarGuard == null) {
             try {
                 View guard = new View(this);
@@ -524,7 +527,8 @@ public class MainActivity extends Activity {
 
     @SuppressWarnings("deprecation")
     private void pollBars() {
-        if (cfg != null && cfg.isKioskEnabled() && !safeMode) {
+        // 管理会话期间静默：管理员需要拉通知栏/看状态，不收回
+        if (cfg != null && cfg.isKioskEnabled() && !safeMode && !KioskApp.isAdminSession()) {
             int vis = getWindow().getDecorView().getSystemUiVisibility();
             boolean navVisible = (vis & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
             boolean statusVisible = (vis & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0;
@@ -838,6 +842,7 @@ public class MainActivity extends Activity {
                         String pin = input.getText().toString().trim();
                         if (cfg.checkPin(pin)) {
                             dlg.dismiss();
+                            KioskApp.beginAdminSession(); // 管理会话：5 分钟内防护静默
                             onSuccess.run();
                         } else {
                             input.setText("");
@@ -900,6 +905,7 @@ public class MainActivity extends Activity {
             if (resultCode == RESULT_OK && pendingAfterCredential != null) {
                 Runnable r = pendingAfterCredential;
                 pendingAfterCredential = null;
+                KioskApp.beginAdminSession(); // 锁屏凭证通过同样进入管理会话
                 Toast.makeText(this, "锁屏验证通过，已作为管理员放行", Toast.LENGTH_SHORT).show();
                 r.run();
             } else {
@@ -959,13 +965,19 @@ public class MainActivity extends Activity {
             return;
         }
         if (cfg != null && cfg.isKioskEnabled() && !safeMode && !isFinishing()
-                && !isChangingConfigurations() && !SettingsActivity.isOpen()) {
+                && !isChangingConfigurations() && !SettingsActivity.isOpen()
+                && !KioskApp.isAdminSession()) { // 管理会话期间不拉回，管理员可自由切应用
             handler.postDelayed(this::bringSelfToFront, BACK_TO_FRONT_MS);
         }
     }
 
     /** 把本应用拉回前台（singleTask 会直接复用当前界面） */
     private void bringSelfToFront() {
+        // 修复：息屏中绝不拉起。按电源键息屏也会触发 onStop，
+        // 若此时执行 startActivity，窗口的 FLAG_TURN_SCREEN_ON 会立刻重新点亮屏幕
+        // （表现为「手动息屏也会立马亮」，且设备永远无法息屏）。
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (pm != null && !pm.isInteractive()) return;
         try {
             Intent i = new Intent(this, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK

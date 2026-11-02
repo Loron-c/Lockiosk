@@ -12,6 +12,24 @@ import android.app.Application;
  */
 public class KioskApp extends Application {
 
+    /**
+     * 「管理会话」窗口期：管理员通过 PIN / 锁屏凭证验证成功后的 5 分钟内，
+     * 自动收回通知面板、切回前台、顶部挡板等防护全部静默，
+     * 方便管理员进行解锁、进系统设置、拉通知栏查看等维护操作。
+     * 工人在窗口期外使用设备，防护照旧。
+     * 静态字段：无障碍服务与 Activity 同进程，直接共享。
+     */
+    private static volatile long adminUntil = 0;
+    private static final long ADMIN_SESSION_MS = 5 * 60_000L;
+
+    public static void beginAdminSession() {
+        adminUntil = System.currentTimeMillis() + ADMIN_SESSION_MS;
+    }
+
+    public static boolean isAdminSession() {
+        return System.currentTimeMillis() < adminUntil;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
