@@ -891,6 +891,7 @@ public class MainActivity extends Activity {
                 return;
             }
             allowBackgroundOnce = true; // 主动跳系统锁屏验证，豁免自动回前台
+            KioskApp.credentialFlow = true; // 验证期间禁止通知面板自动收回（验证界面是大 systemui 窗口，会被误关）
             startActivityForResult(i, REQ_DEVICE_CRED);
         } catch (Exception e) {
             Toast.makeText(this, "无法调起锁屏验证：" + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -908,6 +909,7 @@ public class MainActivity extends Activity {
 
         // 系统锁屏密码兜底验证结果
         if (requestCode == REQ_DEVICE_CRED) {
+            KioskApp.credentialFlow = false; // 验证流程结束，恢复自动收回
             if (resultCode == RESULT_OK && pendingAfterCredential != null) {
                 Runnable r = pendingAfterCredential;
                 pendingAfterCredential = null;

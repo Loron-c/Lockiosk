@@ -89,6 +89,7 @@ public class AutoCloseService extends AccessibilityService {
     }
 
     private void sendBack() {
+        if (KioskApp.credentialFlow) return; // 锁屏密码验证中：验证界面是大 systemui 窗口，绝不能代按返回
         if (System.currentTimeMillis() - lastBackAt > BACK_DEBOUNCE_MS) {
             lastBackAt = System.currentTimeMillis();
             performGlobalAction(GLOBAL_ACTION_BACK);

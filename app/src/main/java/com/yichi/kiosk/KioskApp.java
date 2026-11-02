@@ -41,6 +41,11 @@ public class KioskApp extends Application {
         return adminUntil != 0;
     }
 
+    /** 「系统锁屏密码验证进行中」：验证界面是占满屏的 systemui 大窗口，
+     *  不挂此标志会被通知面板自动收回误按返回键秒关（表现为无法用锁屏密码解锁）。
+     *  验证开始置真、onActivityResult 收尾置假；进程死亡自动归零。 */
+    public static volatile boolean credentialFlow = false;
+
     private static volatile KioskApp instance;
 
     @Override
