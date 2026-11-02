@@ -24,15 +24,24 @@ public class KioskApp extends Application {
 
     public static void beginAdminSession() {
         adminUntil = System.currentTimeMillis() + ADMIN_SESSION_MS;
+        // 可见提示：避免「刚输完密码防护突然全部失效」被误判为 bug
+        try {
+            android.widget.Toast.makeText(instance, "管理会话已开启：5 分钟内防护静默（不收回通知栏、不切回前台），到期自动恢复",
+                    android.widget.Toast.LENGTH_LONG).show();
+        } catch (Throwable ignored) {
+        }
     }
 
     public static boolean isAdminSession() {
         return System.currentTimeMillis() < adminUntil;
     }
 
+    private static volatile KioskApp instance;
+
     @Override
     public void onCreate() {
         super.onCreate();
+        instance = this;
 
         final Thread.UncaughtExceptionHandler defaultHandler =
                 Thread.getDefaultUncaughtExceptionHandler();

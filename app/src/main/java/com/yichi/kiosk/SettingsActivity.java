@@ -72,7 +72,6 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        open = true;
         cfg = new KioskConfig(this);
 
         ScrollView sv = new ScrollView(this);
@@ -261,6 +260,19 @@ public class SettingsActivity extends Activity {
         ll.addView(tip);
 
         setContentView(sv);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        open = true; // 可见才置真（修复：onCreate 置真会卡死——按 Home 返回时设置页
+        // 不被销毁，标志永久为 true，导致切回前台永久失效）
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        open = false; // 压入后台即置假
     }
 
     @Override
