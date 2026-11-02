@@ -558,7 +558,8 @@ public class SettingsActivity extends Activity {
     }
 
     private void finishAfterSave() {
-        Toast.makeText(this, "配置已保存", Toast.LENGTH_SHORT).show();
+        KioskApp.endAdminSession(); // 「保存并返回」= 维护结束，恢复全部防护
+        Toast.makeText(this, "配置已保存，防护已恢复", Toast.LENGTH_SHORT).show();
         setResult(RESULT_OK);
         finish();
     }

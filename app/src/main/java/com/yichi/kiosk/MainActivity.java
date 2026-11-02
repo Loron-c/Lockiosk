@@ -848,7 +848,7 @@ public class MainActivity extends Activity {
                         String pin = input.getText().toString().trim();
                         if (cfg.checkPin(pin)) {
                             dlg.dismiss();
-                            KioskApp.beginAdminSession(); // 管理会话：5 分钟内防护静默
+                            KioskApp.beginAdminSession(); // 管理会话：防护静默，「保存并返回」后恢复
                             onSuccess.run();
                         } else {
                             input.setText("");
@@ -911,7 +911,7 @@ public class MainActivity extends Activity {
             if (resultCode == RESULT_OK && pendingAfterCredential != null) {
                 Runnable r = pendingAfterCredential;
                 pendingAfterCredential = null;
-                KioskApp.beginAdminSession(); // 锁屏凭证通过同样进入管理会话
+                KioskApp.beginAdminSession(); // 锁屏凭证通过同样进入管理会话（「保存并返回」后恢复）
                 Toast.makeText(this, "锁屏验证通过，已作为管理员放行", Toast.LENGTH_SHORT).show();
                 r.run();
             } else {

@@ -13,27 +13,32 @@ import android.app.Application;
 public class KioskApp extends Application {
 
     /**
-     * 「管理会话」窗口期：管理员通过 PIN / 锁屏凭证验证成功后的 5 分钟内，
-     * 自动收回通知面板、切回前台、顶部挡板等防护全部静默，
-     * 方便管理员进行解锁、进系统设置、拉通知栏查看等维护操作。
-     * 工人在窗口期外使用设备，防护照旧。
+     * 「管理会话」：管理员通过 PIN / 锁屏凭证验证成功后开启，
+     * 自动收回通知面板、切回前台、顶部挡板、边缘封锁全部静默，
+     * 方便解锁、进系统设置、拉通知栏等维护操作。
+     * 恢复时机：管理员在设置页点「保存并返回」时调用 endAdminSession() 手动恢复；
+     * 不做定时自动恢复（维护时间长短不一，管理员自己说了算）。
      * 静态字段：无障碍服务与 Activity 同进程，直接共享。
      */
     private static volatile long adminUntil = 0;
-    private static final long ADMIN_SESSION_MS = 5 * 60_000L;
 
     public static void beginAdminSession() {
-        adminUntil = System.currentTimeMillis() + ADMIN_SESSION_MS;
+        adminUntil = Long.MAX_VALUE;
         // 可见提示：避免「刚输完密码防护突然全部失效」被误判为 bug
         try {
-            android.widget.Toast.makeText(instance, "管理会话已开启：5 分钟内防护静默（不收回通知栏、不切回前台），到期自动恢复",
+            android.widget.Toast.makeText(instance, "管理会话已开启：防护暂时静默；在设置页点「保存并返回」后恢复锁定",
                     android.widget.Toast.LENGTH_LONG).show();
         } catch (Throwable ignored) {
         }
     }
 
+    /** 管理员点「保存并返回」：维护结束，恢复全部防护 */
+    public static void endAdminSession() {
+        adminUntil = 0;
+    }
+
     public static boolean isAdminSession() {
-        return System.currentTimeMillis() < adminUntil;
+        return adminUntil != 0;
     }
 
     private static volatile KioskApp instance;
