@@ -527,6 +527,7 @@ public class MainActivity extends Activity {
 
     @SuppressWarnings("deprecation")
     private void pollBars() {
+        applyStatusBarGuard(); // 顺带按当前状态（含管理会话是否过期）同步挡板挂载
         // 管理会话期间静默：管理员需要拉通知栏/看状态，不收回
         if (cfg != null && cfg.isKioskEnabled() && !safeMode && !KioskApp.isAdminSession()) {
             int vis = getWindow().getDecorView().getSystemUiVisibility();
@@ -684,8 +685,8 @@ public class MainActivity extends Activity {
                 downX = ev.getX();
                 downY = ev.getY();
                 downTime = System.currentTimeMillis();
-                // 边缘手势拦截仅在锁定开启时生效
-                gestureFromBlockedEdge = cfg.isKioskEnabled() && isEdgeSwipeStart(ev.getX(), ev.getY());
+                // 边缘手势拦截：锁定开启且不在管理会话内（管理员要能拉通知栏/用边缘手势）
+                gestureFromBlockedEdge = isEdgeBlockActive() && isEdgeSwipeStart(ev.getX(), ev.getY());
                 if (gestureFromBlockedEdge) {
                     return true; // 起点在边缘封锁区：整条手势吞掉（拦左滑返回 + 顶部下拉通知栏）
                 }
@@ -693,7 +694,7 @@ public class MainActivity extends Activity {
 
             case MotionEvent.ACTION_MOVE:
                 if (gestureFromBlockedEdge) return true;
-                if (cfg.isKioskEnabled() && isRealEdgeSwipe(ev)) return true;
+                if (isEdgeBlockActive() && isRealEdgeSwipe(ev)) return true;
                 break;
 
             case MotionEvent.ACTION_UP:
@@ -701,7 +702,7 @@ public class MainActivity extends Activity {
                     gestureFromBlockedEdge = false;
                     return true;
                 }
-                if (cfg.isKioskEnabled() && isRealEdgeSwipe(ev)) return true;
+                if (isEdgeBlockActive() && isRealEdgeSwipe(ev)) return true;
                 float dx = Math.abs(ev.getX() - downX);
                 float dy = Math.abs(ev.getY() - downY);
                 long dt = System.currentTimeMillis() - downTime;
@@ -716,10 +717,15 @@ public class MainActivity extends Activity {
                     gestureFromBlockedEdge = false;
                     return true;
                 }
-                if (cfg.isKioskEnabled() && isEdgeSwipeStart(downX, downY)) return true;
+                if (isEdgeBlockActive() && isEdgeSwipeStart(downX, downY)) return true;
                 break;
         }
         return super.dispatchTouchEvent(ev);
+    }
+
+    /** 边缘封锁是否生效：锁定开启，且不在管理会话内 */
+    private boolean isEdgeBlockActive() {
+        return cfg.isKioskEnabled() && !KioskApp.isAdminSession();
     }
 
     /** 起点（含顶部边缘）是否落在封锁区 */
@@ -992,6 +998,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         handler.removeCallbacks(barPollRunnable);
+        handler.removeCallbacks(loadTimeoutRunnable);
         if (statusBarGuard != null) {
             try {
                 ((WindowManager) getSystemService(WINDOW_SERVICE)).removeView(statusBarGuard);
