@@ -1,6 +1,7 @@
 # Lockiosk — Android Kiosk 锁屏应用
 
-> 自研 Android Kiosk（专用终端锁定）应用：让平板/触控屏设备**只能运行一个指定网页，其他什么都做不了**。  
+> 自研 Android Kiosk（专用终端锁定）应用：让平板/触控屏设备**只能运行一个指定网页，其他什么都做不了**。
+> 设计参考了 Fully Kiosk 公开文档描述的行为（URL 白名单、桌面接管、无障碍服务收回通知面板等）
 
 ![Build Kiosk APK](https://github.com/Loron-c/Lockiosk/actions/workflows/main.yml/badge.svg)
 
@@ -83,5 +84,3 @@ app/src/main/java/com/yichi/kiosk/
 └── AdminReceiver.java      # 设备管理器（防卸载）
 .github/workflows/main.yml  # CI：云端构建 + Secrets 签名
 ```
-
-##
