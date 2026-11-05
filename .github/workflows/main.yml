@@ -25,24 +25,39 @@ jobs:
           gradle-version: '8.7'
 
       # 签名密钥只从 GitHub Secrets 读取，绝不自动生成、绝不提交回仓库
-      # （公开仓库里放过密钥会导致任何人可伪造本应用的安装包）
-      - name: 准备签名密钥
+      - name: 准备签名密钥与签名配置
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS_NAME: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "使用 GitHub Secrets 中的固定签名密钥"
-            echo "$KEYSTORE_B64" | base64 -d > kiosk-release.jks
-          else
+          if [ -z "$KEYSTORE_B64" ]; then
             echo "::error::未找到 KEYSTORE_B64 Secret。请到 仓库 Settings → Secrets and variables → Actions 配置（内容为 kiosk-release.jks 的 base64 编码）。"
             exit 1
           fi
+          echo "$KEYSTORE_B64" | base64 -d > kiosk-release.jks
+
+          # 签名配置由 CI 临时生成（不入库）。密码优先取 Secret，
+          # 未配置时回落到密钥生成时的初始值，保证开箱可用。
+          cat > keystore.properties <<EOF
+          storeFile=kiosk-release.jks
+          storePassword=${KS_PASS:-kiosk2026}
+          keyAlias=${KEY_ALIAS_NAME:-kiosk}
+          keyPassword=${KEY_PASS:-kiosk2026}
+          EOF
+          echo "签名配置已生成"
 
       - name: 构建 Release APK
         run: gradle assembleRelease --no-daemon --stacktrace
 
-      - name: 列出产物
-        run: ls -lh app/build/outputs/apk/release/ || true
+      - name: 校验产物已签名
+        run: |
+          ls -lh app/build/outputs/apk/release/ || true
+          if ls app/build/outputs/apk/release/*unsigned*.apk >/dev/null 2>&1; then
+            echo "::error::产物是未签名 APK，签名配置未生效，请检查 keystore.properties 与密钥。"
+            exit 1
+          fi
 
       - name: 上传 APK
         uses: actions/upload-artifact@v4
