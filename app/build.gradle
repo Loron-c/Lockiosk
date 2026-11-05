@@ -14,8 +14,9 @@ android {
         versionName "1.1.0"
     }
 
-    // 签名配置：若工程根目录存在 keystore.properties 则读取，
-    // 否则回退到内置默认密码（仅用于内部车间分发，非商用上架）
+    // 签名配置：只从 keystore.properties 读取（该文件不入库）。
+    // CI 环境由 workflow 从 GitHub Secrets 还原 kiosk-release.jks 并生成 keystore.properties。
+    // 不再内置明文兜底密码：避免仓库里出现任何凭据。本地构建缺少该文件时会明确报错。
     signingConfigs {
         release {
             def propFile = rootProject.file("keystore.properties")
@@ -26,11 +27,6 @@ android {
                 storePassword props['storePassword']
                 keyAlias props['keyAlias']
                 keyPassword props['keyPassword']
-            } else {
-                storeFile rootProject.file("kiosk-release.jks")
-                storePassword "kiosk2026"
-                keyAlias "kiosk"
-                keyPassword "kiosk2026"
             }
         }
     }
