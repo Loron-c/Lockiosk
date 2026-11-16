@@ -891,9 +891,10 @@ public class MainActivity extends Activity {
                 return;
             }
             allowBackgroundOnce = true; // 主动跳系统锁屏验证，豁免自动回前台
-            KioskApp.credentialFlow = true; // 验证期间禁止通知面板自动收回（验证界面是大 systemui 窗口，会被误关）
             startActivityForResult(i, REQ_DEVICE_CRED);
+            KioskApp.credentialFlow = true; // 验证期间禁止：通知面板自动收回 + 切回前台
         } catch (Exception e) {
+            KioskApp.credentialFlow = false; // 调起失败必须复位，否则防护永久静默
             Toast.makeText(this, "无法调起锁屏验证：" + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
@@ -950,6 +951,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        KioskApp.credentialFlow = false; // 主界面恢复可见 = 验证流程必然已结束（含用户中途放弃验证的兜底复位）
         // 修复：onPause 里 webView.onPause() 后，回来必须 onResume()，
         // 否则页面显示着但整个网页暂停、点不动（切后台再回来必现）
         if (webView != null) webView.onResume();
@@ -974,7 +976,8 @@ public class MainActivity extends Activity {
         }
         if (cfg != null && cfg.isKioskEnabled() && !safeMode && !isFinishing()
                 && !isChangingConfigurations() && !SettingsActivity.isOpen()
-                && !KioskApp.isAdminSession()) { // 管理会话期间不拉回，管理员可自由切应用
+                && !KioskApp.isAdminSession() // 管理会话期间不拉回，管理员可自由切应用
+                && !KioskApp.credentialFlow) { // 锁屏验证期间不拉回（验证界面转场可能多次压后台，单次豁免不够）
             handler.postDelayed(this::bringSelfToFront, BACK_TO_FRONT_MS);
         }
     }
