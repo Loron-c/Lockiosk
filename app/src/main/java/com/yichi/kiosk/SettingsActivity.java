@@ -67,6 +67,7 @@ public class SettingsActivity extends Activity {
     private CheckBox cbHideStatusbar;
     private CheckBox cbDeviceCred;
     private TextView tvHomeStatus;
+    private TextView svcStatusView;
     private Spinner spOrientation;
 
     @Override
@@ -215,6 +216,13 @@ public class SettingsActivity extends Activity {
         });
 
         ll.addView(sectionTitle("通知面板自动收回（ZUI 必需，推荐开启）"));
+        svcStatusView = new TextView(this);
+        svcStatusView.setTextSize(13);
+        svcStatusView.setPadding(0, dp(4), 0, dp(4));
+        ll.addView(svcStatusView);
+        // 服务自检：开关状态（系统设置） vs 真实连接状态分开显示
+        // ZUI 首次开启常出现「已开启但未连接」，需要关掉重开 —— 状态可见化
+        svcStatusView.setText(getServiceStatusText());
         TextView a11yTip = new TextView(this);
         a11yTip.setText("ZUI 的通知栏面板只能由无障碍服务感知并代按返回键关闭（滑出来立刻缩回，"
                 + "与 Fully Kiosk 同款原理）。仅监听系统弹窗事件，未开 Kiosk 锁定时完全不干预。\n"
@@ -262,11 +270,33 @@ public class SettingsActivity extends Activity {
         setContentView(sv);
     }
 
+    /** 无障碍服务自检：开关状态（系统设置里）与真实连接状态分开 */
+    private String getServiceStatusText() {
+        boolean enabled = false;
+        try {
+            String flat = Settings.Secure.getString(getContentResolver(),
+                    "enabled_accessibility_services");
+            if (flat != null && flat.contains("com.yichi.kiosk")
+                    && flat.contains("AutoCloseService")) {
+                enabled = true;
+            }
+        } catch (Exception ignored) {
+        }
+        if (enabled && AutoCloseService.connected) {
+            return "服务状态：✓ 正常运行（通知面板弹出会自动收回）";
+        }
+        if (enabled) {
+            return "服务状态：⚠️ 已开启但未连接（ZUI 首次开启常见）\n请到系统无障碍设置里把本应用服务「关闭 → 再打开」一次";
+        }
+        return "服务状态：✗ 未开启（点下方按钮去开启）";
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         open = true; // 可见才置真（修复：onCreate 置真会卡死——按 Home 返回时设置页
         // 不被销毁，标志永久为 true，导致切回前台永久失效）
+        if (svcStatusView != null) svcStatusView.setText(getServiceStatusText()); // 从系统设置返回后刷新服务状态
     }
 
     @Override

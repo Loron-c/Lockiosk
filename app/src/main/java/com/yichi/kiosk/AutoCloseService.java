@@ -38,14 +38,19 @@ public class AutoCloseService extends AccessibilityService {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable poller = this::pollOnce;
 
+    /** 供设置页自检显示：服务当前是否已被系统真正连接（开关开着 ≠ 连接着） */
+    public static volatile boolean connected = false;
+
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        connected = true;
         handler.post(poller); // 启动巡检兜底
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
+        connected = false;
         handler.removeCallbacks(poller);
         return super.onUnbind(intent);
     }
