@@ -2,7 +2,7 @@ name: Build Kiosk APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master,demo ]
   workflow_dispatch:
 
 jobs:
