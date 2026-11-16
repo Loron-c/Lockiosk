@@ -873,17 +873,60 @@ public class MainActivity extends Activity {
     private static final int REQ_DEVICE_CRED = 1002;
     private Runnable pendingAfterCredential;
 
-    /** 调起系统锁屏密码/指纹/人脸验证，通过则视为管理员（防止忘记 PIN 被锁死） */
+    /** 调起系统锁屏密码/指纹/人脸验证，通过则视为管理员（防止忘记 PIN 被锁死）
+     *
+     * 两条通道按设备状态选择：
+     *  - 设备当前已锁定（息屏后亮屏）：createConfirmDeviceCredentialIntent 在部分机型
+     *    （ZUI 实测）会「点了没反应」。改用 requestDismissKeyguard —— 专为
+     *    showWhenLocked 场景设计，安全锁屏下原生弹密码验证，通过即解屏 + 放行
+     *  - 设备未锁定：走凭证确认 intent（解屏后临时确认身份）
+     */
     private void requestDeviceCredential() {
+        android.app.KeyguardManager km =
+                (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+        if (km == null || !km.isKeyguardSecure()) {
+            Toast.makeText(this,
+                    "本平板未设置系统锁屏密码，无法使用该功能\n请先在系统设置中配置锁屏密码",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // 通道一：设备已锁定 → requestDismissKeyguard（API 26+，安全锁屏下会弹验证）
+        if (km.isKeyguardLocked() && Build.VERSION.SDK_INT >= 26) {
+            KioskApp.credentialFlow = true; // 验证界面是 systemui 大窗口，期间禁止自动收回
+            km.requestDismissKeyguard(this, new android.app.KeyguardManager.KeyguardDismissCallback() {
+                @Override
+                public void onDismissSucceeded() {
+                    KioskApp.credentialFlow = false;
+                    if (pendingAfterCredential != null) {
+                        Runnable r = pendingAfterCredential;
+                        pendingAfterCredential = null;
+                        KioskApp.beginAdminSession(); // 解屏成功 = 管理员验证通过
+                        Toast.makeText(MainActivity.this,
+                                "锁屏验证通过，已作为管理员放行", Toast.LENGTH_SHORT).show();
+                        r.run();
+                    }
+                }
+
+                @Override
+                public void onDismissCancelled() {
+                    KioskApp.credentialFlow = false;
+                    pendingAfterCredential = null;
+                    Toast.makeText(MainActivity.this, "验证已取消", Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onDismissError() {
+                    KioskApp.credentialFlow = false;
+                    pendingAfterCredential = null;
+                    Toast.makeText(MainActivity.this, "验证出错", Toast.LENGTH_SHORT).show();
+                }
+            });
+            return;
+        }
+
+        // 通道二：设备未锁定 → 凭证确认（设备已解锁，需要再次确认身份）
         try {
-            android.app.KeyguardManager km =
-                    (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-            if (km == null || !km.isKeyguardSecure()) {
-                Toast.makeText(this,
-                        "本平板未设置系统锁屏密码，无法使用该功能\n请先在系统设置中配置锁屏密码",
-                        Toast.LENGTH_LONG).show();
-                return;
-            }
             Intent i = km.createConfirmDeviceCredentialIntent(
                     "管理员验证", "输入平板锁屏密码以继续（管理员备用通道）");
             if (i == null) {
