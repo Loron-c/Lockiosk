@@ -4,13 +4,7 @@
 
 >  自研 Android Kiosk（专用终端锁定）应用：让平板/触控屏设备**只能运行一个指定网页，将可操作界面锁定在指定网页**。  
 
-![Build Kiosk APK](https://github.com/Loron-c/Lockiosk/actions/workflows/main.yml/badge.svg)
-
-![Platform](https://img.shields.io/badge/platform-Android%2010%2B-blue)
-
-![Lang](https://img.shields.io/badge/lang-Java%2017-orange)
-
-![Version](https://img.shields.io/badge/version-1.0%20stable-success)
+![Build Kiosk APK](https://github.com/Loron-c/Lockiosk/actions/workflows/main.yml/badge.svg)  ![Platform](https://img.shields.io/badge/platform-Android%2010%2B-blue)  ![Lang](https://img.shields.io/badge/lang-Java%2017-orange)  ![Version](https://img.shields.io/badge/version-1.0%20stable-success)
 
 ## 版本与下载
 
