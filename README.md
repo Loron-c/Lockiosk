@@ -1,6 +1,7 @@
 # Lockiosk — Android Kiosk 锁屏应用
 
 >  本文档为开发过程描述以及功能描述，为本人个人作品集作品
+
 >  自研 Android Kiosk（专用终端锁定）应用：让平板/触控屏设备**只能运行一个指定网页，将可操作界面锁定在指定网页**。  
 
 ![Build Kiosk APK](https://github.com/Loron-c/Lockiosk/actions/workflows/main.yml/badge.svg)
